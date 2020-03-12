@@ -8,7 +8,13 @@ object HttpParser {
   def initState = ParsingRequest(ByteString.empty)
 }
 
-sealed class HttpParser
+sealed class HttpParser {
+  def input(in: ByteString): HttpParser = this match {
+    case _: Passthrough => Passthrough(in)
+    case _: Invalid => Passthrough(in)
+    case _: Finished => Passthrough(in)
+  }
+}
 
 case class ParsingRequest(parsed: ByteString) extends HttpParser
 
