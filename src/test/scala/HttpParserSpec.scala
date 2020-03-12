@@ -30,18 +30,18 @@ object HttpParserSpec extends Properties("HttpParser") {
   property("startsWith") = forAll(httpGen) { h => {
     val s = h.toByteString
 
-    def isStopedState(s: HttpParser): Boolean = s match {
+    def isStoppedState(s: HttpParser): Boolean = s match {
       case _: HttpParsingStop => true
       case _ => false
     }
 
     val states = s.grouped(16)
       .scanLeft[HttpParser](HttpParser.initState)((s: HttpParser, b: ByteString) => s.input(b)).toList
-    val stoppedStates: List[HttpParser] = states.filter(isStopedState)
+    val stoppedStates: List[HttpParser] = states.filter(isStoppedState)
     val finalState = stoppedStates(0)
-    val passthroughByteString: ByteString = stoppedStates
-      .flatMap[Passthrough]({
-      case x: Passthrough => Some(x)
+    val parsedData: ByteString = stoppedStates
+      .flatMap[HttpParsingStop]({
+      case x: HttpParsingStop => Some(x)
       case _ => None
     }).map(_.data).foldLeft(ByteString.empty)(_ ++ _)
 
@@ -49,7 +49,7 @@ object HttpParserSpec extends Properties("HttpParser") {
       case Finished(request, header, parsed) =>
         (request == h.request) :| "same request line" &&
           (header.toMap == h.header.map(p => (p._1.toLowerCase, p._2)).toMap) :| "same headers" &&
-          (parsed ++ passthroughByteString == s) :| "same data"
+          (parsedData == s) :| "same data"
       case _ => false :| "parse successfully"
     }
   }

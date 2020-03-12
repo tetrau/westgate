@@ -1,6 +1,12 @@
 import akka.util.ByteString
 
-sealed trait HttpParsingStop
+sealed trait HttpParsingStop {
+  def data: ByteString = this match {
+    case Finished(_, _, parsed) => parsed
+    case Invalid(parsed) => parsed
+    case Passthrough(data) => data
+  }
+}
 
 object HttpParser {
   def initState = ParsingRequest(ByteString.empty)
@@ -85,4 +91,4 @@ case class Finished(request: String, header: List[(String, String)], parsed: Byt
 
 case class Invalid(parsed: ByteString) extends HttpParser with HttpParsingStop
 
-case class Passthrough(data: ByteString) extends HttpParser with HttpParsingStop
+case class Passthrough(override val data: ByteString) extends HttpParser with HttpParsingStop
