@@ -1,7 +1,6 @@
 import org.scalacheck._
 import org.scalacheck.Prop.{propBoolean, forAll}
 import akka.util.ByteString
-import HttpParser._
 
 
 case class HTTP(request: String, header: List[(String, String)], body: ByteString) {
