@@ -44,3 +44,17 @@ Download WestGate jar from [release](https://github.com/tetrau/westgate/releases
 ```bash
 java -jar westgate.jar config.json
 ```
+
+# Per Connection versus Per Request
+HTTP persistent connection feature lets a single TCP connection to transfer
+multiple HTTP requests. WestGate is a per connection router, which means all
+requests inside the same TCP connection will be routed to the same server 
+decided by the first request even through they may contain different headers. 
+That is different from sophisticated web server like Nginx which can do a per 
+request routing.
+
+There's a reason for WestGate to choose per-connection. It makes WestGate 
+support all HTTP request methods GET, HEAD, POST, PUT, DELETE, TRACE, OPTIONS, 
+CONNECT and PATCH which some of those methods vanilla Nginx doesn't. And it 
+makes WestGate simple at the same time.
+
