@@ -50,14 +50,14 @@ object HttpParser {
       case Some(firstLine) =>
         val indexOfColon = firstLine.indexOf(':')
         if (firstLine == ByteString("\r\n")) {
-          Finished(state.request, state.header, totalInput)
+          Finished(state.request, state.header.reverse, totalInput)
         } else if (indexOfColon < 0) {
           Invalid(totalInput)
         } else if (state.header.length >= 99) {
           Invalid(totalInput)
         } else {
           val (_headerField, _headerValue) = firstLine.splitAt(indexOfColon)
-          val headerField = _headerField.utf8String.toLowerCase.trim
+          val headerField = _headerField.utf8String.trim
           val headerValue = _headerValue.drop(1).utf8String.trim
           if (headerField.isEmpty || headerValue.isEmpty) {
             Invalid(totalInput)

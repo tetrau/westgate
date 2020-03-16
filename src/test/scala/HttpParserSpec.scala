@@ -14,6 +14,8 @@ case class HTTP(request: String, header: List[(String, String)], body: ByteStrin
 
 
 object HttpParserSpec extends Properties("HttpParser") {
+  override def overrideParameters(p: Test.Parameters): Test.Parameters = p.withMinSuccessfulTests(1000)
+
   val genStringPair: Gen[(String, String)] = (for {f: String <- Gen.alphaStr
                                                    s: String <- Gen.alphaStr} yield (f, s))
     .suchThat(sp => sp._1.length + sp._2.length < 8000 && !sp._1.isEmpty && !sp._2.isEmpty)
@@ -43,11 +45,10 @@ object HttpParserSpec extends Properties("HttpParser") {
       case x: HttpParsingStop => Some(x)
       case _ => None
     }).map(_.data).foldLeft(ByteString.empty)(_ ++ _)
-
     finalState match {
       case Finished(request, header, parsed) =>
         (request == h.request) :| "same request line" &&
-          (header.toMap == h.header.map(p => (p._1.toLowerCase, p._2)).toMap) :| "same headers" &&
+          (header == h.header) :| "same headers" &&
           (parsedData == s) :| "same data"
       case _ => false :| "parse successfully"
     }
