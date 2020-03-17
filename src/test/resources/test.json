@@ -1,0 +1,19 @@
+{
+  "bind": {
+    "host": "127.0.0.1",
+    "port": 8000
+  },
+  "default": {
+    "host": "127.0.0.1",
+    "port": 8001
+  },
+  "forward": [
+    {
+      "headerField": "X-WestGate",
+      "headerValue": "test",
+      "host": "127.0.0.1",
+      "port": 8002
+    }
+  ],
+  "timeout": 5
+}

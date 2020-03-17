@@ -8,4 +8,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % "2.6.3"
 )
 
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.1" % "test"
+libraryDependencies ++= Seq(
+  "org.scalacheck" %% "scalacheck" % "1.14.1" % "test",
+  "com.typesafe.akka" %% "akka-stream-testkit" % "2.6.4" % Test
+)

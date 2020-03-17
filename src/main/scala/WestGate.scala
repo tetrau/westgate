@@ -49,22 +49,23 @@ class Setting(configString: String) {
 }
 
 class WestGate(setting: Setting) {
-  val httpParseFlow: Flow[ByteString, HttpParser, akka.NotUsed] = Flow[ByteString]
-    .scan[HttpParser](HttpParser.initState)((s, b) => s.input(b))
-  val injectTimeoutFlow: Flow[HttpParser, Either[HttpParser, TimeoutException], akka.NotUsed] =
-    Flow[HttpParser].map[Either[HttpParser, TimeoutException]](Left(_))
+  val injectTimeoutFlow: Flow[ByteString, Either[ByteString, TimeoutException], akka.NotUsed] =
+    Flow[ByteString].map[Either[ByteString, TimeoutException]](Left(_))
       .keepAlive(FiniteDuration(setting.timeout, "s"), () => Right(new TimeoutException("HTTP parse timeout")))
-  val httpParseTimeoutFlow: Flow[Either[HttpParser, TimeoutException], HttpParser, akka.NotUsed] =
-    Flow[Either[HttpParser, TimeoutException]].scan[HttpParser](HttpParser.initState)(
-      (state, nextWrappedState) => nextWrappedState match {
-        case Left(s) => s
-        case Right(_) =>
-          state match {
-            case s: HttpParsingStop => s
-            case ParsingRequest(parsed) => Invalid(parsed)
-            case ParsingHeader(_, _, _, parsed) => Invalid(parsed)
-          }
-      })
+
+  val httpParseFlow: Flow[Either[ByteString, TimeoutException], HttpParser, akka.NotUsed] =
+    Flow[Either[ByteString, TimeoutException]]
+      .scan[HttpParser](HttpParser.initState)((s, input) => {
+      input match {
+        case Right(_) => s match {
+          case _: HttpParsingStop => Passthrough(ByteString.empty)
+          case ParsingRequest(parsed) => Invalid(parsed)
+          case ParsingHeader(_, _, _, parsed) => Invalid(parsed)
+        }
+        case Left(b) => s.input(b)
+      }
+    }).drop(1)
+
   val httpParserResultFlow: Flow[HttpParser, HttpParsingStop, akka.NotUsed] =
     Flow[HttpParser].mapConcat[HttpParsingStop]({
       case s: HttpParsingStop => List(s)
@@ -99,7 +100,7 @@ class WestGate(setting: Setting) {
 
         Source(first).concat(rest).via(httpParseResultDecodeFlow).via(forwardConnection)
       })
-      connection.handleWith(httpParseFlow.via(injectTimeoutFlow).via(httpParseTimeoutFlow).via(httpParserResultFlow).via(forwardFlow))
+      connection.handleWith(injectTimeoutFlow.via(httpParseFlow).via(httpParserResultFlow).via(forwardFlow))
     } onComplete (cr => system.terminate().onComplete(_ => cr match {
       case Failure(_) => sys.exit(1)
       case _ => sys.exit(0)

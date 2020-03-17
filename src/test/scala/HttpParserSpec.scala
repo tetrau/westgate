@@ -12,10 +12,7 @@ case class HTTP(request: String, header: List[(String, String)], body: ByteStrin
   }
 }
 
-
-object HttpParserSpec extends Properties("HttpParser") {
-  override def overrideParameters(p: Test.Parameters): Test.Parameters = p.withMinSuccessfulTests(1000)
-
+object HTTP {
   val genStringPair: Gen[(String, String)] = (for {f: String <- Gen.alphaStr
                                                    s: String <- Gen.alphaStr} yield (f, s))
     .suchThat(sp => sp._1.length + sp._2.length < 8000 && !sp._1.isEmpty && !sp._2.isEmpty)
@@ -28,7 +25,13 @@ object HttpParserSpec extends Properties("HttpParser") {
     header <- genHeader
     body <- Gen.asciiStr
   } yield HTTP(requestLine, header, ByteString(body))
-  property("startsWith") = forAll(httpGen) { h => {
+}
+
+object HttpParserSpec extends Properties("HttpParser") {
+  override def overrideParameters(p: Test.Parameters): Test.Parameters = p.withMinSuccessfulTests(1000)
+
+
+  property("parseHTTP") = forAll(HTTP.httpGen) { h => {
     val s = h.toByteString
 
     def isStoppedState(s: HttpParser): Boolean = s match {
@@ -46,7 +49,7 @@ object HttpParserSpec extends Properties("HttpParser") {
       case _ => None
     }).map(_.data).foldLeft(ByteString.empty)(_ ++ _)
     finalState match {
-      case Finished(request, header, parsed) =>
+      case Finished(request, header, _) =>
         (request == h.request) :| "same request line" &&
           (header == h.header) :| "same headers" &&
           (parsedData == s) :| "same data"
