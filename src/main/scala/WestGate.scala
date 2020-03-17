@@ -50,22 +50,16 @@ object WestGate extends App {
     .scan[HttpParser](HttpParser.initState)((s, b) => s.input(b))
   val httpParseTimeoutFlow = Flow[HttpParser].map(Left(_))
     .keepAlive(FiniteDuration(setting.timeout, "s"), () => Right(new TimeoutException("HTTP parse timeout")))
-    .scan[Either[HttpParser, TimeoutException]](Left(HttpParser.initState))(
-    (wrappedState, nextWrappedState) => nextWrappedState match {
-      case x@Left(_) => x
+    .scan[HttpParser](HttpParser.initState)(
+    (state, nextWrappedState) => nextWrappedState match {
+      case Left(s) => s
       case Right(_) =>
-        wrappedState match {
-          case s@Left(_: HttpParsingStop) => s
-          case Left(state) =>
-            state match {
-              case ParsingRequest(parsed) => Left(Invalid(parsed))
-              case ParsingHeader(_, _, _, parsed) => Left(Invalid(parsed))
-            }
+        state match {
+          case s: HttpParsingStop => s
+          case ParsingRequest(parsed) => Invalid(parsed)
+          case ParsingHeader(_, _, _, parsed) => Invalid(parsed)
         }
-    }).mapConcat[HttpParser]({
-    case Left(s) => List(s)
-    case _ => List.empty
-  })
+    })
   val httpParserResultFlow = Flow[HttpParser].mapConcat[HttpParsingStop]({
     case s: HttpParsingStop => List(s)
     case _ => List.empty
