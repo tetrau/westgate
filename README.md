@@ -30,12 +30,17 @@ HTTP header can be tested like "Host", "Authorization", "User-Agent", etc.
       "host": "127.0.0.1",
       "port": 8080
     }
-  ]
+  ],
+  "timeout": 15
 }
 ```
 It's pretty self-explanatory, `bind` sets which interface and port should 
 WestGate listen on. `default` is the default server all unmatched and invalid
-connection will goto. And `forward` lists all routing rules.
+connection will goto. And `forward` lists all routing rules. `timeout` is an 
+optional argument, when WestGate could not receive the entire HTTP header of
+the first HTTP request of the incoming connection in `timeout` seconds, WestGate
+will forward the incoming connection to the default target server. The default
+value of `timeout` is 15.
 
 **Step2:** Start WestGate
 
